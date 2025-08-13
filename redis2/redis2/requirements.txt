@@ -1,0 +1,7 @@
+streamlit==1.28.0
+farm-haystack==1.21.0
+elasticsearch==7.17.9
+pandas==2.0.3
+requests==2.31.0
+requests==2.31.0
+pydantic>=2.0.0,<3.0.0
