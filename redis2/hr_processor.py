@@ -1,5 +1,5 @@
 """
-HR Ask Service - Processes questions from Redis queue using Haystack and Ollama
+HR Ask Service - Processes questions from Redis queue using Haystack v2 and Ollama
 """
 import json
 import logging
@@ -8,9 +8,9 @@ import time
 from typing import Dict, Any, Optional
 import redis
 import requests
-from haystack.document_stores.elasticsearch import ElasticsearchDocumentStore
-from haystack.nodes import BM25Retriever
 from haystack import Document
+from haystack.document_stores.in_memory import InMemoryDocumentStore
+from haystack.components.retrievers.in_memory import InMemoryBM25Retriever
 import pandas as pd
 
 # Setup logging
@@ -26,15 +26,9 @@ class HRProcessor:
             decode_responses=True
         )
         
-        # Elasticsearch connection
-        self.document_store = ElasticsearchDocumentStore(
-            host=os.getenv('ELASTICSEARCH_HOST', 'localhost'),
-            port=int(os.getenv('ELASTICSEARCH_PORT', 9200)),
-            index="hr-data",
-            verify_certs=False
-        )
-        
-        self.retriever = BM25Retriever(document_store=self.document_store)
+        # Document store - using InMemory for simplicity (can switch to Elasticsearch later)
+        self.document_store = InMemoryDocumentStore()
+        self.retriever = InMemoryBM25Retriever(document_store=self.document_store)
         
         # Ollama connection
         self.ollama_host = os.getenv('OLLAMA_HOST', 'localhost')
