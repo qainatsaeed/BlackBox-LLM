@@ -18,7 +18,7 @@ app = FastAPI(title="HR Data Ingestion API", version="1.0.0")
 
 # Redis connection
 redis_client = redis.Redis(
-    host=os.getenv('REDIS_HOST', 'localhost'),
+    host=os.getenv('REDIS_HOST', 'redis'),
     port=int(os.getenv('REDIS_PORT', 6379)),
     decode_responses=True
 )
