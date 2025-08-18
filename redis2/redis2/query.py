@@ -1,5 +1,5 @@
-from haystack.document_stores.elasticsearch import ElasticsearchDocumentStore
-from haystack.nodes import BM25Retriever
+from haystack.document_stores.in_memory import InMemoryDocumentStore
+from haystack.components.retrievers.in_memory import InMemoryBM25Retriever
 from haystack import Document
 import pandas as pd
 import requests
@@ -7,14 +7,9 @@ import json
 
 INDEX_NAME = "employee-shifts"
 
-# Init ES & retriever
-document_store = ElasticsearchDocumentStore(
-    host="elasticsearch",
-    port=9200,
-    index=INDEX_NAME,
-    verify_certs=False
-)
-retriever = BM25Retriever(document_store=document_store)
+# Init document store & retriever
+document_store = InMemoryDocumentStore()
+retriever = InMemoryBM25Retriever(document_store=document_store)
 
 OLLAMA_BASE_URL = "http://127.0.0.1:11434"
 
@@ -40,7 +35,7 @@ def ingest_csv(file_path: str):
 
 def ask_llm_ollama(query: str, top_k: int = 5) -> str:
     """Query LLM using Ollama instead of OpenAI"""
-    docs = retriever.retrieve(query=query, top_k=top_k)
+    docs = retriever.run(query=query, top_k=top_k)["documents"]
     context = "\n\n".join([doc.content for doc in docs])
     
     prompt = f"""You're an HR assistant answering questions based on employee shifts. Only use the provided context.

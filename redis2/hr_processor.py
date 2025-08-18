@@ -266,7 +266,7 @@ Answer:"""
             top_k = query_data.get('top_k', 5)
             
             # Retrieve relevant documents
-            docs = self.retriever.retrieve(query=query_text, top_k=top_k)
+            docs = self.retriever.run(query=query_text, top_k=top_k)["documents"]
             
             # Apply role-based filtering
             filtered_docs = self._filter_docs_by_role(docs, user_role, user_id)

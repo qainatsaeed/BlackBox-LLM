@@ -11,7 +11,7 @@ from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 import uvicorn
-from haystack.document_stores.elasticsearch import ElasticsearchDocumentStore
+from haystack.document_stores.in_memory import InMemoryDocumentStore
 from haystack import Document
 
 app = FastAPI(title="HR Data Ingestion API", version="1.0.0")
@@ -23,13 +23,8 @@ redis_client = redis.Redis(
     decode_responses=True
 )
 
-# Elasticsearch connection
-document_store = ElasticsearchDocumentStore(
-    host=os.getenv('ELASTICSEARCH_HOST', 'localhost'),
-    port=int(os.getenv('ELASTICSEARCH_PORT', 9200)),
-    index="hr-data",
-    verify_certs=False
-)
+# Document store (using InMemory for simplicity and compatibility)
+document_store = InMemoryDocumentStore()
 
 class QueryRequest(BaseModel):
     query: str
