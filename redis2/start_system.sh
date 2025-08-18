@@ -31,7 +31,7 @@ else
 fi
 
 # Check Elasticsearch
-if curl -s http://localhost:9200/_cluster/health > /dev/null; then
+if curl -s http://localhost:9201/_cluster/health > /dev/null; then
     echo "✅ Elasticsearch is healthy"
 else
     echo "❌ Elasticsearch is not responding"
