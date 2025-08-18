@@ -4,7 +4,7 @@ services:
   redis:
     image: redis:7-alpine
     ports:
-      - "6379:6379"
+      - "6380:6379"
     command: redis-server --appendonly yes
     volumes:
       - redis_data:/data
@@ -16,7 +16,7 @@ services:
       - xpack.security.enabled=false
       - ES_JAVA_OPTS=-Xms1g -Xmx1g
     ports:
-      - "9200:9200"
+      - "9201:9200"
     volumes:
       - elasticsearch_data:/usr/share/elasticsearch/data
 
@@ -45,16 +45,15 @@ services:
       - elasticsearch
     environment:
       - REDIS_HOST=localhost
-      - REDIS_PORT=6379
+      - REDIS_PORT=6380
       - ELASTICSEARCH_HOST=localhost
-      - ELASTICSEARCH_PORT=9200
+      - ELASTICSEARCH_PORT=9201
     ports:
       - "8080:8080"
     volumes:
       - ./data:/app/data
     command: python ingestion_api.py
     restart: unless-stopped
-    network_mode: host
 
   streamlit:
     build: .
@@ -63,16 +62,15 @@ services:
       - elasticsearch
     environment:
       - REDIS_HOST=localhost
-      - REDIS_PORT=6379
+      - REDIS_PORT=6380
       - ELASTICSEARCH_HOST=localhost
-      - ELASTICSEARCH_PORT=9200
+      - ELASTICSEARCH_PORT=9201
     ports:
       - "8501:8501"
     volumes:
       - ./data:/app/data
     command: streamlit run ui/streamlit_app.py --server.address=0.0.0.0
     restart: unless-stopped
-    network_mode: host
 
 volumes:
   redis_data:
