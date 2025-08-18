@@ -33,7 +33,7 @@ services:
       - OLLAMA_HOST=localhost
       - OLLAMA_PORT=11434
     volumes:
-      - ./data:/app/data
+      - ./redis2:/app/data
       - ./logs:/app/logs
     restart: unless-stopped
     network_mode: host
@@ -51,7 +51,7 @@ services:
     ports:
       - "8080:8080"
     volumes:
-      - ./data:/app/data
+      - ./redis2:/app/data
     command: python ingestion_api.py
     restart: unless-stopped
 
@@ -68,7 +68,7 @@ services:
     ports:
       - "8501:8501"
     volumes:
-      - ./data:/app/data
+      - ./redis2:/app/data
     command: streamlit run ui/streamlit_app.py --server.address=0.0.0.0
     restart: unless-stopped
 
