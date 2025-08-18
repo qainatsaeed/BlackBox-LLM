@@ -44,10 +44,10 @@ services:
       - redis
       - elasticsearch
     environment:
-      - REDIS_HOST=localhost
-      - REDIS_PORT=6380
-      - ELASTICSEARCH_HOST=localhost
-      - ELASTICSEARCH_PORT=9201
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - ELASTICSEARCH_HOST=elasticsearch
+      - ELASTICSEARCH_PORT=9200
     ports:
       - "8080:8080"
     volumes:
@@ -61,10 +61,10 @@ services:
       - redis
       - elasticsearch
     environment:
-      - REDIS_HOST=localhost
-      - REDIS_PORT=6380
-      - ELASTICSEARCH_HOST=localhost
-      - ELASTICSEARCH_PORT=9201
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - ELASTICSEARCH_HOST=elasticsearch
+      - ELASTICSEARCH_PORT=9200
     ports:
       - "8501:8501"
     volumes:
