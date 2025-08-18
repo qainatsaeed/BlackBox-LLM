@@ -175,10 +175,10 @@ async def health_check():
         # Test Redis connection
         redis_client.ping()
         
-        # Test Elasticsearch connection
-        document_store.get_document_count()
+        # Test document store (InMemoryDocumentStore doesn't have get_document_count in v2)
+        doc_count = len(document_store.filter_documents())
         
-        return {"status": "healthy", "redis": "connected", "elasticsearch": "connected"}
+        return {"status": "healthy", "redis": "connected", "document_store": "connected", "documents": doc_count}
     except Exception as e:
         return {"status": "unhealthy", "error": str(e)}
 
@@ -186,7 +186,7 @@ async def health_check():
 async def get_stats():
     """Get system statistics"""
     try:
-        doc_count = document_store.get_document_count()
+        doc_count = len(document_store.filter_documents())
         queue_size = redis_client.llen("hrask.ask.queue")
         
         return {
