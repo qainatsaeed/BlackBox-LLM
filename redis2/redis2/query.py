@@ -48,12 +48,12 @@ Question: {query}
 Answer:"""
 
     payload = {
-        "model": "llama3.1:70b",
+        "model": "llama3.1:8b",
         "prompt": prompt,
         "stream": False,
         "options": {
-            "temperature": 0.2,
-            "num_predict": 512
+            "temperature": 0.1,
+            "num_predict": 150
         }
     }
     
@@ -61,7 +61,7 @@ Answer:"""
         response = requests.post(
             f"{OLLAMA_BASE_URL}/api/generate",
             json=payload,
-            timeout=120
+            timeout=30  # Reduced timeout for 8b model
         )
         response.raise_for_status()
         result = response.json()

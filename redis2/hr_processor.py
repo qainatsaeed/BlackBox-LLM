@@ -224,13 +224,13 @@ Instructions:
 Answer:"""
 
         payload = {
-            "model": "llama3.1:70b",
+            "model": "llama3.1:8b",  # Much faster than 70b
             "prompt": prompt,
             "stream": False,
             "options": {
-                "temperature": 0.2,
-                "num_predict": 512,
-                "stop": ["Human:", "Question:"]
+                "temperature": 0.1,
+                "num_predict": 150,  # Shorter responses
+                "stop": ["Human:", "Question:", "\n\n"]
             }
         }
         
@@ -238,7 +238,7 @@ Answer:"""
             response = requests.post(
                 f"{self.ollama_base_url}/api/generate",
                 json=payload,
-                timeout=120
+                timeout=30  # Reduced timeout for 8b model
             )
             response.raise_for_status()
             result = response.json()
