@@ -12,6 +12,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 import uvicorn
 from haystack.document_stores.in_memory import InMemoryDocumentStore
+from haystack.components.retrievers.in_memory import InMemoryBM25Retriever
 from haystack import Document
 
 app = FastAPI(title="HR Data Ingestion API", version="1.0.0")
@@ -25,6 +26,7 @@ redis_client = redis.Redis(
 
 # Document store (using InMemory for simplicity and compatibility)
 document_store = InMemoryDocumentStore()
+retriever = InMemoryBM25Retriever(document_store=document_store)
 
 class QueryRequest(BaseModel):
     query: str
@@ -119,7 +121,47 @@ async def ingest_existing_files():
         "total_documents_ingested": total_docs
     }
 
-@app.post("/query", response_model=QueryResponse)
+@app.post("/query/direct", response_model=QueryResponse)
+async def direct_query(request: QueryRequest):
+    """Query directly using the API's document store (bypass Redis)"""
+    import uuid
+    
+    query_id = str(uuid.uuid4())
+    
+    try:
+        # Directly search the API's document store
+        all_docs = document_store.filter_documents()
+        
+        # Simple text search in documents
+        matching_docs = []
+        query_lower = request.query.lower()
+        
+        for doc in all_docs:
+            if query_lower in doc.content.lower():
+                matching_docs.append(doc)
+                if len(matching_docs) >= request.top_k:
+                    break
+        
+        if matching_docs:
+            # Create context from matching documents
+            context = "\n\n".join([doc.content[:200] for doc in matching_docs])
+            response_text = f"Found {len(matching_docs)} relevant records. Context: {context[:500]}..."
+        else:
+            response_text = "No matching records found for your query."
+        
+        return QueryResponse(
+            success=True,
+            response=response_text,
+            query_id=query_id,
+            documents_found=len(matching_docs)
+        )
+    
+    except Exception as e:
+        return QueryResponse(
+            success=False,
+            error=str(e),
+            query_id=query_id
+        )
 async def submit_query(request: QueryRequest):
     """Submit a query via Redis queue"""
     import uuid
