@@ -162,6 +162,8 @@ async def direct_query(request: QueryRequest):
             error=str(e),
             query_id=query_id
         )
+
+@app.post("/query", response_model=QueryResponse)
 async def submit_query(request: QueryRequest):
     """Submit a query via Redis queue"""
     import uuid
@@ -235,6 +237,31 @@ async def get_stats():
             "documents_in_store": doc_count,
             "pending_queries": queue_size,
             "available_indices": ["hr-data"]
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.get("/debug/documents")
+async def debug_documents():
+    """Debug endpoint to see what documents are stored"""
+    try:
+        all_docs = document_store.filter_documents()
+        
+        if not all_docs:
+            return {"message": "No documents found", "count": 0}
+        
+        # Return first few documents for inspection
+        sample_docs = []
+        for i, doc in enumerate(all_docs[:3]):  # First 3 documents
+            sample_docs.append({
+                "id": doc.id,
+                "content_preview": doc.content[:200],  # First 200 chars
+                "meta": doc.meta
+            })
+        
+        return {
+            "total_documents": len(all_docs),
+            "sample_documents": sample_docs
         }
     except Exception as e:
         return {"error": str(e)}
