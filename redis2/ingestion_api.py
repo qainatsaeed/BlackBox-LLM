@@ -197,6 +197,20 @@ async def get_stats():
     except Exception as e:
         return {"error": str(e)}
 
+@app.post("/clear")
+async def clear_documents():
+    """Clear all documents from the document store"""
+    try:
+        # Get all documents and delete them
+        all_docs = document_store.filter_documents()
+        if all_docs:
+            doc_ids = [doc.id for doc in all_docs]
+            document_store.delete_documents(doc_ids)
+        
+        return {"success": True, "message": f"Cleared {len(all_docs)} documents"}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
 def ingest_csv_file(file_path: str, source_file: str) -> int:
     """Process and ingest a CSV file"""
     df = pd.read_csv(file_path)
