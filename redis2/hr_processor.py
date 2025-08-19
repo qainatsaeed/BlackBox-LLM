@@ -228,19 +228,33 @@ A:"""
             }
         }
         
-        # Temporary mock response to test the system
+        # Try both mock and real Ollama for comparison
         try:
-            # For testing - return a simple response based on context
+            # Get the actual host IP instead of localhost
+            import socket
+            hostname = socket.gethostname()
+            host_ip = socket.gethostbyname(hostname)
+            
+            ollama_url = f"http://{host_ip}:11434/api/generate"
+            
+            response = requests.post(
+                ollama_url,
+                json=payload,
+                timeout=30  # Shorter timeout for test
+            )
+            response.raise_for_status()
+            result = response.json()
+            return result.get("response", "No response generated")
+            
+        except Exception as e:
+            logger.error(f"Error querying Ollama: {str(e)}")
+            # Fallback to mock response
             if "Brian" in context:
                 return "Brian Villarreal is an employee found in the records."
             elif context.strip():
-                return f"Found information about employees in the data."
+                return f"Found employee information in the data."
             else:
                 return "No relevant employee information found."
-                
-        except Exception as e:
-            logger.error(f"Error in mock response: {str(e)}")
-            return f"Error processing query: {str(e)}"
 
     def _get_role_context(self, user_role: str, user_id: str) -> str:
         """Get role-specific context for prompts"""
