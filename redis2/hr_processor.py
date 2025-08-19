@@ -268,8 +268,12 @@ Answer:"""
             # Retrieve relevant documents
             docs = self.retriever.run(query=query_text, top_k=top_k)["documents"]
             
+            logger.info(f"Retrieved {len(docs)} documents for query: {query_text}")
+            
             # Apply role-based filtering
             filtered_docs = self._filter_docs_by_role(docs, user_role, user_id)
+            
+            logger.info(f"After filtering: {len(filtered_docs)} documents")
             
             # Create context from documents
             context = "\n\n".join([doc.content for doc in filtered_docs])
