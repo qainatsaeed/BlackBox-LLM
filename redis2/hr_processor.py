@@ -207,20 +207,12 @@ class HRProcessor:
         # Role-based prompt engineering
         role_context = self._get_role_context(user_role, user_id)
         
-        prompt = f"""You are an HR assistant with access to employee data. {role_context}
+        prompt = f"""HR Assistant. Answer briefly using only the provided data.
 
-Context from database:
-{context}
+Data:
+{context[:1000]}
 
 Question: {query}
-
-Instructions:
-- Only use information from the provided context
-- If the context doesn't contain relevant information, say so
-- Be precise with numbers, dates, and employee names
-- For financial data, include currency symbols and proper formatting
-- For time data, use clear time formats
-
 Answer:"""
 
         payload = {
@@ -229,8 +221,8 @@ Answer:"""
             "stream": False,
             "options": {
                 "temperature": 0.1,
-                "num_predict": 150,  # Shorter responses
-                "stop": ["Human:", "Question:", "\n\n"]
+                "num_predict": 80,  # Very short responses
+                "stop": ["Human:", "Question:", "\n\n", "Data:"]
             }
         }
         
@@ -238,7 +230,7 @@ Answer:"""
             response = requests.post(
                 f"{self.ollama_base_url}/api/generate",
                 json=payload,
-                timeout=30  # Reduced timeout for 8b model
+                timeout=60  # Increased timeout for 8b model
             )
             response.raise_for_status()
             result = response.json()
