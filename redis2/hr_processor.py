@@ -207,30 +207,24 @@ class HRProcessor:
         # Role-based prompt engineering
         role_context = self._get_role_context(user_role, user_id)
         
-        prompt = f"""You are an HR assistant with access to employee data. {role_context}
+        # Limit context size to prevent timeouts
+        limited_context = context[:500] if context else ""
+        
+        prompt = f"""Answer briefly using only this data:
 
-Context from database:
-{context}
+{limited_context}
 
-Question: {query}
-
-Instructions:
-- Only use information from the provided context
-- If the context doesn't contain relevant information, say so
-- Be precise with numbers, dates, and employee names
-- For financial data, include currency symbols and proper formatting
-- For time data, use clear time formats
-
-Answer:"""
+Q: {query}
+A:"""
 
         payload = {
-            "model": "llama3.1:8b",  # Much faster than 70b
+            "model": "llama3.1:8b",
             "prompt": prompt,
             "stream": False,
             "options": {
                 "temperature": 0.1,
-                "num_predict": 150,  # Shorter responses
-                "stop": ["Human:", "Question:", "\n\n"]
+                "num_predict": 20,  # Very short responses
+                "stop": ["Q:", "A:", "\n"]
             }
         }
         
