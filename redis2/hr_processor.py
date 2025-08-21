@@ -230,17 +230,13 @@ A:"""
         
         # Try both mock and real Ollama for comparison
         try:
-            # Get the actual host IP instead of localhost
-            import socket
-            hostname = socket.gethostname()
-            host_ip = socket.gethostbyname(hostname)
-            
-            ollama_url = f"http://{host_ip}:11434/api/generate"
+            # Use localhost since we're using host networking
+            ollama_url = f"http://localhost:11434/api/generate"
             
             response = requests.post(
                 ollama_url,
                 json=payload,
-                timeout=30  # Shorter timeout for test
+                timeout=100
             )
             response.raise_for_status()
             result = response.json()
@@ -252,9 +248,9 @@ A:"""
             if "Brian" in context:
                 return "Brian Villarreal is an employee found in the records."
             elif context.strip():
-                return f"Found employee information in the data."
+                return f"Found employee information in the data. Likely Timed out or incomplete. {context.strip()} -- {str(e)}"
             else:
-                return "No relevant employee information found."
+                return f"No relevant employee information found.  {context.strip()} -- {str(e)}"
 
     def _get_role_context(self, user_role: str, user_id: str) -> str:
         """Get role-specific context for prompts"""
