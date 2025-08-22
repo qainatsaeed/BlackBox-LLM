@@ -61,7 +61,7 @@ Answer:"""
         response = requests.post(
             f"{OLLAMA_BASE_URL}/api/generate",
             json=payload,
-            timeout=30  # Reduced timeout for 8b model
+            timeout=100  # Reduced timeout for 8b model
         )
         response.raise_for_status()
         result = response.json()

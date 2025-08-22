@@ -244,13 +244,15 @@ A:"""
             
         except Exception as e:
             logger.error(f"Error querying Ollama: {str(e)}")
+
+            return f"Error querying Ollama: {str(e)}"
             # Fallback to mock response
-            if "Brian" in context:
-                return "Brian Villarreal is an employee found in the records."
-            elif context.strip():
-                return f"Found employee information in the data. Likely Timed out or incomplete. {context.strip()} -- {str(e)}"
-            else:
-                return f"No relevant employee information found.  {context.strip()} -- {str(e)}"
+            # if "Brian" in context:
+            #     return "Brian Villarreal is an employee found in the records."
+            # elif context.strip():
+            #     return f"Found employee information in the data. Likely Timed out or incomplete. {context.strip()} -- {str(e)}"
+            # else:
+            #     return f"No relevant employee information found.  {context.strip()} -- {str(e)}"
 
     def _get_role_context(self, user_role: str, user_id: str) -> str:
         """Get role-specific context for prompts"""
