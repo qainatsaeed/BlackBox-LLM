@@ -15,7 +15,8 @@ fi
 
 # Start the Docker services
 echo "🐳 Starting Docker services..."
-docker-compose up --build -d
+# docker-compose up --build -d
+/usr/local/bin/docker-compose up --build -d
 
 echo "⏳ Waiting for services to start..."
 sleep 10
