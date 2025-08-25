@@ -69,8 +69,8 @@ services:
     ports:
       - "8501:8501"
     volumes:
-      - ./redis2:/app/data
-    command: streamlit run ui/streamlit_app.py --server.address=0.0.0.0
+      - /data/malik/code/BlackBox-LLM/redis2/redis2/ui:/app/ui
+    command: streamlit run /app/ui/streamlit_app.py --server.address=0.0.0.0
     restart: unless-stopped
 
 volumes:
