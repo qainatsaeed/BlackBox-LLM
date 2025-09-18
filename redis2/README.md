@@ -1,30 +1,43 @@
-# HR Assistant with Redis Queue System
+# HR Assistant with Redis Queue System - Milestone 2
 
-A comprehensive HR data analysis system that uses Redis for messaging, Haystack for RAG (Retrieval-Augmented Generation), and Ollama for local LLM processing.
+A comprehensive HR data analysis system that uses Redis for messaging, PostgreSQL for structured data, Haystack for RAG (Retrieval-Augmented Generation), and Ollama for local LLM processing.
 
 ## 🏗️ Architecture
 
 - **Redis**: Message queue for async query processing (`hrask.ask.queue` → `hrask.response.queue`)
-- **Elasticsearch**: Document store for HR data with full-text search
+- **PostgreSQL**: Structured data store for employee records, shifts, and time punches
+- **Elasticsearch**: Document store for unstructured HR data with full-text search
 - **Haystack**: RAG framework for document retrieval and context building
-- **Ollama**: Local LLM (llama3.1:70b) for generating responses
+- **Ollama**: Support for multiple local LLMs (llama3.1, qwen, mixtral)
 - **FastAPI**: REST API for data ingestion and query submission
 - **Streamlit**: Web UI for user interaction
+- **Middleware**: Core Redis service for request processing and response handling
 
 ## 📋 Prerequisites
 
 1. **Docker & Docker Compose** installed
-2. **Ollama** running locally:
+2. **Ollama** running locally (or via Docker):
    ```bash
-   # Install Ollama (if not already installed)
+   # Install Ollama locally (if not using Docker)
    curl -fsSL https://ollama.ai/install.sh | sh
    
    # Start Ollama
    ollama serve
    
-   # Pull the model
-   ollama pull llama3.1:70b
+   # Pull the models
+   ollama pull llama3.1:8b
+   ollama pull qwen:14b         # Optional
+   ollama pull mixtral:8x7b     # Optional
    ```
+
+## 🆕 What's New in Milestone 2
+
+- **Redis Pub/Sub Integration**: Asynchronous message processing with `redis.asyncio`
+- **Role-based Access Control**: Data isolation based on user roles and permissions
+- **PostgreSQL Integration**: Direct connection to structured data using `asyncpg`
+- **Hybrid Retrieval Strategy**: Uses both Haystack for unstructured data and SQL for structured queries
+- **Multi-LLM Support**: Configurable models via `models.yml` with ModelFactory pattern
+- **Middleware Service**: Core service that processes messages from Redis queues
 
 ## 🚀 Quick Start
 
@@ -67,9 +80,12 @@ Once running, you can access:
 
 - **Streamlit UI**: http://localhost:8501
 - **Ingestion API**: http://localhost:8080
+- **Middleware API**: http://localhost:8081
 - **API Documentation**: http://localhost:8080/docs
-- **Elasticsearch**: http://localhost:9200
-- **Redis**: localhost:6379
+- **Elasticsearch**: http://localhost:9201
+- **PostgreSQL**: localhost:5432 (credentials: postgres/postgres)
+- **Redis**: localhost:6380
+- **Ollama**: http://localhost:11434
 
 ## 📁 Data Ingestion
 
@@ -114,6 +130,29 @@ curl -X POST http://localhost:8080/query \
   }'
 ```
 
+### Via Redis (New in Milestone 2):
+```bash
+# Push a test question to Redis
+python tests/push_test_question.py --query "Who worked on 5/15/2025?" --role manager
+
+# Listen for responses
+python tests/listen_response.py
+```
+
+### Via Direct Middleware API:
+```bash
+curl -X POST http://localhost:8081/query/direct \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "What were the sales on 5/15/2025?",
+    "user_role": "manager",
+    "user_id": "test_user",
+    "account_id": "acct001",
+    "location_ids": ["loc001", "loc002"],
+    "model": "llama3.1:8b"
+  }'
+```
+
 ## 🎯 Example Queries
 
 ### Sales & Financial:
@@ -151,33 +190,55 @@ The system implements hierarchical access control:
 - Attendance tracking, hour differences
 - Both BOH (Back of House) and FOH (Front of House) positions
 
+### PostgreSQL Data Structure (New in Milestone 2):
+- **employees**: Employee records with role, account, location info
+- **shifts**: Scheduled and attended shifts with position data
+- **time_punches**: Clock in/out timestamps for employees
+- **locations**: Store/location information
+- **accounts**: Account/company information
+
 ## 🛠️ Development
 
-### Project Structure:
+### Project Structure (Updated for Milestone 2):
 ```
 redis2/
 ├── docker-compose.yml          # Multi-service orchestration
 ├── requirements.txt            # Python dependencies
-├── hr_processor.py            # Redis queue processor
-├── ingestion_api.py           # FastAPI ingestion service
+├── hr_processor.py             # Redis queue processor (Milestone 1)
+├── ingestion_api.py            # FastAPI ingestion service
+├── middleware_service.py       # Core middleware service (New)
+├── redis_client.py             # Async Redis client (New)
+├── role_validator.py           # Role-based access control (New)
+├── sql_executor.py             # PostgreSQL integration (New)
+├── haystack_wrapper.py         # Haystack integration (New)
+├── model_manager.py            # Multi-LLM flexibility (New)
+├── pipeline.py                 # Request orchestration (New)
+├── models.yml                  # LLM configuration (New)
 ├── redis2/
-│   ├── query.py               # Original query functions
+│   ├── query.py                # Original query functions
 │   ├── dailySalesBreakdown.csv
 │   ├── file1.csv
 │   └── ui/
-│       └── streamlit_app.py   # Enhanced Streamlit UI
-├── Dockerfile.api             # API service Dockerfile
-├── Dockerfile.processor       # Processor service Dockerfile
-├── Dockerfile.streamlit       # Streamlit service Dockerfile
-└── start_system.*             # Startup scripts
+│       └── streamlit_app.py    # Enhanced Streamlit UI
+├── tests/
+│   ├── push_test_question.py   # Redis test client (New)
+│   └── listen_response.py      # Redis response listener (New)
+├── Dockerfile.api              # API service Dockerfile
+├── Dockerfile.processor        # Processor service Dockerfile 
+└── start_system.*              # Startup scripts
 ```
 
-### Environment Variables:
-- `REDIS_HOST`: Redis hostname (default: localhost)
+### Environment Variables (Updated for Milestone 2):
+- `REDIS_HOST`: Redis hostname (default: redis)
 - `REDIS_PORT`: Redis port (default: 6379)
-- `ELASTICSEARCH_HOST`: Elasticsearch hostname (default: localhost)
+- `POSTGRES_HOST`: PostgreSQL hostname (default: postgres)
+- `POSTGRES_PORT`: PostgreSQL port (default: 5432)
+- `POSTGRES_USER`: PostgreSQL username (default: postgres)
+- `POSTGRES_PASSWORD`: PostgreSQL password (default: postgres)
+- `POSTGRES_DB`: PostgreSQL database (default: hrask)
+- `ELASTICSEARCH_HOST`: Elasticsearch hostname (default: elasticsearch)
 - `ELASTICSEARCH_PORT`: Elasticsearch port (default: 9200)
-- `OLLAMA_HOST`: Ollama hostname (default: host.docker.internal)
+- `OLLAMA_HOST`: Ollama hostname (default: ollama)
 - `OLLAMA_PORT`: Ollama port (default: 11434)
 
 ## 🔧 Troubleshooting
@@ -187,7 +248,7 @@ redis2/
 1. **Ollama not accessible**:
    ```bash
    # Check if Ollama is running
-   curl http://127.0.0.1:11434/api/tags
+   curl http://localhost:11434/api/tags
    
    # Start Ollama if needed
    ollama serve
@@ -217,6 +278,21 @@ redis2/
    docker-compose exec redis redis-cli ping
    ```
 
+5. **PostgreSQL connection issues**:
+   ```bash
+   # Check PostgreSQL
+   docker-compose exec postgres psql -U postgres -d hrask -c "SELECT 1;"
+   ```
+
+6. **Middleware service not responding**:
+   ```bash
+   # Check middleware health
+   curl http://localhost:8081/health
+   
+   # Check middleware logs
+   docker-compose logs -f middleware
+   ```
+
 ### Monitoring:
 
 ```bash
@@ -224,7 +300,7 @@ redis2/
 docker-compose logs -f
 
 # View specific service logs
-docker-compose logs -f hr_processor
+docker-compose logs -f middleware
 docker-compose logs -f ingestion_api
 docker-compose logs -f streamlit
 
@@ -234,15 +310,19 @@ docker-compose ps
 # Monitor Redis queues
 docker-compose exec redis redis-cli llen hrask.ask.queue
 docker-compose exec redis redis-cli llen hrask.response.queue
+
+# Monitor PostgreSQL
+docker-compose exec postgres psql -U postgres -d hrask -c "SELECT COUNT(*) FROM employees;"
 ```
 
 ## 📈 Performance Notes
 
-- The system processes queries asynchronously via Redis queues
-- Elasticsearch provides fast full-text search across HR documents
-- Haystack retrieves relevant context before sending to the LLM
-- Role-based filtering ensures users only see authorized data
-- The llama3.1:70b model provides high-quality analysis of HR data
+- The system uses async/await for both Redis and PostgreSQL connections
+- Hybrid retrieval strategy combines Haystack for unstructured data and SQL for structured queries
+- Redis Pub/Sub enables scalable message processing
+- Role-based middleware enforces data isolation based on user permissions
+- Multiple LLM options with configurable settings via models.yml
+- PostgreSQL provides fast structured data access for common HR queries
 
 ## ⏹️ Stopping the System
 

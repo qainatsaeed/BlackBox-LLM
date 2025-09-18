@@ -1,0 +1,75 @@
+# HRAsk System Model Configuration
+# This file defines available LLM models and their configuration
+
+# Default model to use if none specified
+default_model: llama3.1:8b
+
+# Available models configuration
+models:
+  llama3.1:8b:
+    provider: ollama
+    endpoint: http://ollama:11434/api/generate
+    context_length: 8192
+    prompt_template: |
+      You're an HR assistant answering questions based on employee data. Only use the provided context.
+      
+      Context:
+      {context}
+      
+      Question: {query}
+      
+      Answer:
+    parameters:
+      temperature: 0.1
+      num_predict: 150
+      
+  llama3.1:70b:
+    provider: ollama
+    endpoint: http://ollama:11434/api/generate
+    context_length: 16384
+    prompt_template: |
+      You're an HR assistant answering questions based on employee data. Only use the provided context.
+      
+      Context:
+      {context}
+      
+      Question: {query}
+      
+      Answer:
+    parameters:
+      temperature: 0.1
+      num_predict: 250
+  
+  qwen:14b:
+    provider: ollama
+    endpoint: http://ollama:11434/api/generate
+    context_length: 8192
+    prompt_template: |
+      You're an HR assistant answering questions based on employee data. Only use the provided context.
+      
+      Context:
+      {context}
+      
+      Question: {query}
+      
+      Answer:
+    parameters:
+      temperature: 0.1
+      num_predict: 200
+  
+  mixtral:8x7b:
+    provider: ollama
+    endpoint: http://ollama:11434/api/generate
+    context_length: 32768
+    prompt_template: |
+      You're an HR assistant answering questions based on employee data. Only use the provided context.
+      
+      Context:
+      {context}
+      
+      Question: {query}
+      
+      Answer:
+    parameters:
+      temperature: 0.1
+      num_predict: 300

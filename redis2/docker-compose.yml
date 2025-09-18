@@ -20,6 +20,22 @@ services:
     volumes:
       - elasticsearch_data:/usr/share/elasticsearch/data
 
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=hrask
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   hr_processor:
     build: .
     depends_on:
@@ -38,16 +54,47 @@ services:
     restart: unless-stopped
     network_mode: host
 
+  middleware:
+    build: 
+      context: .
+      dockerfile: Dockerfile.processor
+    depends_on:
+      - redis
+      - postgres
+      - elasticsearch
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=hrask
+      - ELASTICSEARCH_HOST=elasticsearch
+      - ELASTICSEARCH_PORT=9200
+      - OLLAMA_HOST=ollama
+      - OLLAMA_PORT=11434
+    ports:
+      - "8081:8081"
+    volumes:
+      - ./models.yml:/app/models.yml
+    command: python middleware_service.py
+    restart: unless-stopped
+
   ingestion_api:
-    build: .
+    build: 
+      context: .
+      dockerfile: Dockerfile.api
     depends_on:
       - redis
       - elasticsearch
+      - middleware
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - ELASTICSEARCH_HOST=elasticsearch
       - ELASTICSEARCH_PORT=9200
+      - MIDDLEWARE_URL=http://middleware:8081
     ports:
       - "8080:8080"
     volumes:
@@ -56,10 +103,13 @@ services:
     restart: unless-stopped
 
   streamlit:
-    build: .
+    build: 
+      context: ./redis2
+      dockerfile: Dockerfile.streamlit
     depends_on:
       - redis
       - elasticsearch
+      - ingestion_api
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
@@ -69,10 +119,26 @@ services:
     ports:
       - "8501:8501"
     volumes:
-      - /data/malik/code/BlackBox-LLM/redis2/redis2/ui:/app/ui
+      - ./redis2/ui:/app/ui
     command: streamlit run /app/ui/streamlit_app.py --server.address=0.0.0.0
     restart: unless-stopped
+    
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
 
 volumes:
   redis_data:
   elasticsearch_data:
+  postgres_data:
+  ollama_data:
