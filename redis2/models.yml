@@ -1,0 +1,5 @@
+models:
+  - name: llama3.1:8b
+    endpoint: http://ollama:11434
+  - name: phi4:14b
+    endpoint: http://ollama:11434
