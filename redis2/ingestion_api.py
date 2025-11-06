@@ -302,21 +302,41 @@ def process_sales_data(df: pd.DataFrame, source_file: str) -> List[Document]:
     """Process daily sales breakdown data"""
     docs = []
     
+    # Clean up column names (remove newlines and extra spaces)
+    df.columns = [str(col).replace('\n', ' ').strip() for col in df.columns]
+    
+    # Find the date column (it might be named different things)
+    date_col = None
+    for col in df.columns:
+        if 'date' in col.lower():
+            date_col = col
+            break
+    
+    print(f"Processing sales data. Date column: {date_col}, Total rows: {len(df)}")
+    
     for idx, row in df.iterrows():
-        if pd.isna(row.get('Date', pd.NaT)) or 'Totals' in str(row.get('Date', '')):
+        # Skip if no date column or empty date
+        if date_col is None:
+            continue
+            
+        date_val = row.get(date_col)
+        if pd.isna(date_val) or 'Totals' in str(date_val) or date_val == '':
+            continue
+        
+        # Skip header-like rows
+        if 'RT2' in str(date_val) or 'Daily Sales' in str(date_val):
             continue
             
         content_parts = []
-        
-        if not pd.isna(row.get('Date')):
-            content_parts.append(f"Date: {row['Date']}")
+        content_parts.append(f"Date: {date_val}")
         
         # Add all non-null columns to content
         for col, val in row.items():
-            if not pd.isna(val) and col != 'Date':
-                content_parts.append(f"{col}: {val}")
+            if not pd.isna(val) and col != date_col and str(val).strip() != '':
+                clean_col = col.replace('\n', ' ').strip()
+                content_parts.append(f"{clean_col}: {val}")
         
-        if content_parts:
+        if len(content_parts) > 1:  # Must have more than just date
             content = "\n".join(content_parts)
             
             doc = Document(
@@ -324,14 +344,14 @@ def process_sales_data(df: pd.DataFrame, source_file: str) -> List[Document]:
                 meta={
                     "source": source_file,
                     "data_type": "sales_breakdown",
-                    "date": str(row.get('Date', '')),
+                    "date": str(date_val),
                     "location": "RT2 - South Austin",
                     "row_id": idx,
-                    **{col: str(val) for col, val in row.items() if not pd.isna(val)}
                 }
             )
             docs.append(doc)
     
+    print(f"Created {len(docs)} sales documents")
     return docs
 
 def process_employee_data(df: pd.DataFrame, source_file: str) -> List[Document]:

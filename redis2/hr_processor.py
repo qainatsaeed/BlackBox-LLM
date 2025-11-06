@@ -83,35 +83,44 @@ class HRProcessor:
         """Process daily sales breakdown data"""
         docs = []
         
+        # Clean up column names (remove newlines and extra spaces)
+        df.columns = [str(col).replace('\n', ' ').strip() for col in df.columns]
+        
+        # Find the date column (it might be named different things)
+        date_col = None
+        for col in df.columns:
+            if 'date' in col.lower():
+                date_col = col
+                break
+        
+        logger.info(f"Processing sales data. Date column: {date_col}, Total rows: {len(df)}")
+        logger.info(f"Columns: {df.columns.tolist()}")
+        
         for idx, row in df.iterrows():
-            if pd.isna(row.get('Date', pd.NaT)) or 'Totals' in str(row.get('Date', '')):
+            # Skip if no date column or empty date
+            if date_col is None:
+                continue
+                
+            date_val = row.get(date_col)
+            if pd.isna(date_val) or 'Totals' in str(date_val) or date_val == '':
+                continue
+            
+            # Skip header-like rows
+            if 'RT2' in str(date_val) or 'Daily Sales' in str(date_val):
                 continue
                 
             # Create structured content for sales data
             content_parts = []
+            content_parts.append(f"Date: {date_val}")
             
-            if not pd.isna(row.get('Date')):
-                content_parts.append(f"Date: {row['Date']}")
+            # Add all non-null columns to content
+            for col, val in row.items():
+                if not pd.isna(val) and col != date_col and str(val).strip() != '':
+                    # Clean column names for display
+                    clean_col = col.replace('\n', ' ').strip()
+                    content_parts.append(f"{clean_col}: {val}")
             
-            # Sales data
-            sales_cols = ['Sales-Projected NET SALES', 'Threshold Ratio']
-            for col in sales_cols:
-                if col in row and not pd.isna(row[col]):
-                    content_parts.append(f"{col}: {row[col]}")
-            
-            # Cost data
-            cost_cols = ['Scheduled Cost ', 'Scheduled Threshold', 'Attendance Cost ', 'Attendance Threshold']
-            for col in cost_cols:
-                if col in row and not pd.isna(row[col]):
-                    content_parts.append(f"{col}: {row[col]}")
-            
-            # Variance data
-            variance_cols = ['Cost   Variance', 'Threshold  Variance']
-            for col in variance_cols:
-                if col in row and not pd.isna(row[col]):
-                    content_parts.append(f"{col}: {row[col]}")
-            
-            if content_parts:
+            if len(content_parts) > 1:  # Must have more than just date
                 content = "\n".join(content_parts)
                 
                 doc = Document(
@@ -119,14 +128,18 @@ class HRProcessor:
                     meta={
                         "source": source_file,
                         "data_type": "sales_breakdown",
-                        "date": str(row.get('Date', '')),
+                        "date": str(date_val),
                         "location": "RT2 - South Austin",
                         "row_id": idx,
-                        **{col: str(val) for col, val in row.items() if not pd.isna(val)}
                     }
                 )
                 docs.append(doc)
+                
+                # Log first few documents for debugging
+                if idx < 3:
+                    logger.info(f"Sample doc {idx}: Date={date_val}, Content length={len(content)}")
         
+        logger.info(f"Created {len(docs)} sales documents")
         return docs
 
     def _process_employee_data(self, df: pd.DataFrame, source_file: str) -> list:
@@ -282,8 +295,15 @@ A:"""
             
             logger.info(f"After filtering: {len(filtered_docs)} documents")
             
+            # Log sample of retrieved documents for debugging
+            for i, doc in enumerate(filtered_docs[:2]):
+                logger.info(f"Doc {i}: {doc.content[:150]}...")
+            
             # Create context from documents
             context = "\n\n".join([doc.content for doc in filtered_docs])
+            
+            # Enable debug mode via environment variable
+            debug_mode = os.getenv('HR_DEBUG_CONTEXT', '0') == '1'
             
             if not context.strip():
                 response_text = "I don't have access to information relevant to your query."
@@ -291,12 +311,22 @@ A:"""
                 # Query the LLM
                 response_text = self.query_llm(query_text, context, user_role, user_id)
             
-            return {
+            result = {
                 "success": True,
                 "response": response_text,
                 "query_id": query_data.get('query_id', ''),
                 "documents_found": len(filtered_docs)
             }
+            
+            # Add debug info if enabled
+            if debug_mode:
+                result["debug_context"] = context[:1000]  # First 1000 chars
+                result["debug_sample_docs"] = [
+                    {"date": doc.meta.get("date"), "type": doc.meta.get("data_type")} 
+                    for doc in filtered_docs[:3]
+                ]
+            
+            return result
             
         except Exception as e:
             logger.error(f"Error processing query: {str(e)}")
