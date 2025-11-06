@@ -70,24 +70,16 @@ class HRProcessor:
         # Determine file type and process accordingly
         if "dailySalesBreakdown" in source_file:
             # Sales CSV has many header rows - need to skip them
-            # Read the file to find the actual header row
-            with open(file_path, 'r') as f:
-                lines = f.readlines()
-                header_row_idx = None
-                for i, line in enumerate(lines):
-                    # Look for the row that has "Date" and "Sales" in it
-                    # This will be the header row
-                    if 'Date' in line and 'Sales' in line and 'NET SALES' in line:
-                        header_row_idx = i
-                        logger.info(f"Found header row at line {i+1} (0-indexed: {i})")
-                        break
-            
-            if header_row_idx is not None:
-                # Skip all rows BEFORE the header row, then use the header row as column names
-                df = pd.read_csv(file_path, skiprows=range(header_row_idx))
+            # Row 10 (0-indexed) typically has the headers with "Shifts\nDate" etc.
+            try:
+                # Try reading with skiprows=10 first
+                df = pd.read_csv(file_path, skiprows=10)
+                logger.info(f"Reading sales CSV with skiprows=10")
+                logger.info(f"Columns found: {df.columns.tolist()[:5]}")  # First 5 columns
                 docs = self._process_sales_data(df, source_file)
-            else:
-                logger.warning(f"Could not find header row in {source_file}")
+            except Exception as e:
+                logger.error(f"Error reading sales CSV: {e}")
+                docs = []
         elif "file1" in source_file:
             df = pd.read_csv(file_path)
             docs = self._process_employee_data(df, source_file)

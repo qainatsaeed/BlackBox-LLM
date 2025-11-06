@@ -286,21 +286,15 @@ def ingest_csv_file(file_path: str, source_file: str) -> int:
     
     # Determine file type and process accordingly
     if "dailySalesBreakdown" in source_file.lower() or "sales" in source_file.lower():
-        # Sales CSV has many header rows - need to skip them
-        with open(file_path, 'r') as f:
-            lines = f.readlines()
-            header_row_idx = None
-            for i, line in enumerate(lines):
-                if 'Date' in line and 'Sales' in line and 'NET SALES' in line:
-                    header_row_idx = i
-                    print(f"Found header row at line {i+1} (0-indexed: {i})")
-                    break
-        
-        if header_row_idx is not None:
-            df = pd.read_csv(file_path, skiprows=range(header_row_idx))
+        # Sales CSV has many header rows - skip first 10 rows
+        try:
+            df = pd.read_csv(file_path, skiprows=10)
+            print(f"Reading sales CSV with skiprows=10")
+            print(f"Columns found: {df.columns.tolist()[:5]}")
             docs = process_sales_data(df, source_file)
-        else:
-            print(f"Could not find header row in {source_file}")
+        except Exception as e:
+            print(f"Error reading sales CSV: {e}")
+            docs = []
     elif "file1" in source_file.lower() or "employee" in source_file.lower() or "schedule" in source_file.lower():
         df = pd.read_csv(file_path)
         docs = process_employee_data(df, source_file)
