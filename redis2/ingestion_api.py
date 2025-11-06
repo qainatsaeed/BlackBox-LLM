@@ -289,15 +289,15 @@ def ingest_csv_file(file_path: str, source_file: str) -> int:
         # Sales CSV has many header rows - need to skip them
         with open(file_path, 'r') as f:
             lines = f.readlines()
-            header_row = None
+            header_row_idx = None
             for i, line in enumerate(lines):
-                if 'Date' in line and 'Sales' in line:
-                    header_row = i
+                if 'Date' in line and 'Sales' in line and 'NET SALES' in line:
+                    header_row_idx = i
+                    print(f"Found header row at line {i+1} (0-indexed: {i})")
                     break
         
-        if header_row is not None:
-            print(f"Found header row at line {header_row}")
-            df = pd.read_csv(file_path, skiprows=header_row)
+        if header_row_idx is not None:
+            df = pd.read_csv(file_path, skiprows=range(header_row_idx))
             docs = process_sales_data(df, source_file)
         else:
             print(f"Could not find header row in {source_file}")

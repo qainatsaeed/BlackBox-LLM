@@ -73,15 +73,18 @@ class HRProcessor:
             # Read the file to find the actual header row
             with open(file_path, 'r') as f:
                 lines = f.readlines()
-                header_row = None
+                header_row_idx = None
                 for i, line in enumerate(lines):
-                    if 'Date' in line and 'Sales' in line:
-                        header_row = i
+                    # Look for the row that has "Date" and "Sales" in it
+                    # This will be the header row
+                    if 'Date' in line and 'Sales' in line and 'NET SALES' in line:
+                        header_row_idx = i
+                        logger.info(f"Found header row at line {i+1} (0-indexed: {i})")
                         break
             
-            if header_row is not None:
-                logger.info(f"Found header row at line {header_row}")
-                df = pd.read_csv(file_path, skiprows=header_row)
+            if header_row_idx is not None:
+                # Skip all rows BEFORE the header row, then use the header row as column names
+                df = pd.read_csv(file_path, skiprows=range(header_row_idx))
                 docs = self._process_sales_data(df, source_file)
             else:
                 logger.warning(f"Could not find header row in {source_file}")
