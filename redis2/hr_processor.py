@@ -65,16 +65,32 @@ class HRProcessor:
 
     def _process_csv_file(self, file_path: str, source_file: str) -> list:
         """Process a CSV file and convert to Haystack documents"""
-        df = pd.read_csv(file_path)
         docs = []
         
         # Determine file type and process accordingly
         if "dailySalesBreakdown" in source_file:
-            docs = self._process_sales_data(df, source_file)
+            # Sales CSV has many header rows - need to skip them
+            # Read the file to find the actual header row
+            with open(file_path, 'r') as f:
+                lines = f.readlines()
+                header_row = None
+                for i, line in enumerate(lines):
+                    if 'Date' in line and 'Sales' in line:
+                        header_row = i
+                        break
+            
+            if header_row is not None:
+                logger.info(f"Found header row at line {header_row}")
+                df = pd.read_csv(file_path, skiprows=header_row)
+                docs = self._process_sales_data(df, source_file)
+            else:
+                logger.warning(f"Could not find header row in {source_file}")
         elif "file1" in source_file:
+            df = pd.read_csv(file_path)
             docs = self._process_employee_data(df, source_file)
         else:
             # Generic processing
+            df = pd.read_csv(file_path)
             docs = self._process_generic_csv(df, source_file)
         
         return docs
