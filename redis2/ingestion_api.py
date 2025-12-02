@@ -335,9 +335,29 @@ def process_sales_data(df: pd.DataFrame, source_file: str) -> List[Document]:
         # Skip header-like rows
         if 'RT2' in str(date_val) or 'Daily Sales' in str(date_val):
             continue
+        
+        # Normalize date to include both formats for better BM25 matching
+        date_str = str(date_val)
+        alt_date = date_str
+        try:
+            # Parse and create alternative format (with and without leading zeros)
+            from datetime import datetime
+            for fmt in ['%m/%d/%Y', '%Y-%m-%d']:
+                try:
+                    dt = datetime.strptime(date_str, fmt)
+                    # Create both formats: "5/15/2025" and "05/15/2025"
+                    alt_date = f"{dt.month}/{dt.day}/{dt.year}"
+                    break
+                except ValueError:
+                    continue
+        except:
+            alt_date = date_str
             
         content_parts = []
         content_parts.append(f"Date: {date_val}")
+        # Add alternative date format for better search matching
+        if alt_date != date_str:
+            content_parts.append(f"Date (alt): {alt_date}")
         
         # Add all non-null columns to content
         for col, val in row.items():
@@ -346,7 +366,8 @@ def process_sales_data(df: pd.DataFrame, source_file: str) -> List[Document]:
                 content_parts.append(f"{clean_col}: {val}")
         
         if len(content_parts) > 1:  # Must have more than just date
-            content = "\n".join(content_parts)
+            # Add keyword "sales" for better BM25 matching
+            content = "Sales Data for RT2 - South Austin\n" + "\n".join(content_parts)
             
             doc = Document(
                 content=content,
