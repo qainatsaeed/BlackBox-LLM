@@ -125,6 +125,7 @@ async def ingest_existing_files():
 async def direct_query(request: QueryRequest):
     """Query directly using the API's document store (bypass Redis)"""
     import uuid
+    import re
     
     query_id = str(uuid.uuid4())
     
@@ -132,15 +133,21 @@ async def direct_query(request: QueryRequest):
         # Directly search the API's document store
         all_docs = document_store.filter_documents()
         
-        # Simple text search in documents
-        matching_docs = []
-        query_lower = request.query.lower()
+        # Tokenize query into meaningful words (skip stopwords)
+        stopwords = {'what', 'were', 'the', 'on', 'in', 'for', 'a', 'an', 'is', 'are', 'was', 'of', 'to', 'and', 'or'}
+        query_tokens = [w.lower() for w in re.split(r'\s+', request.query) if w.lower() not in stopwords and len(w) > 1]
         
+        # Score documents based on how many query tokens they match
+        scored_docs = []
         for doc in all_docs:
-            if query_lower in doc.content.lower():
-                matching_docs.append(doc)
-                if len(matching_docs) >= request.top_k:
-                    break
+            content_lower = doc.content.lower()
+            score = sum(1 for token in query_tokens if token in content_lower)
+            if score > 0:
+                scored_docs.append((doc, score))
+        
+        # Sort by score (highest first) and take top_k
+        scored_docs.sort(key=lambda x: x[1], reverse=True)
+        matching_docs = [doc for doc, score in scored_docs[:request.top_k]]
         
         if matching_docs:
             # Create context from matching documents

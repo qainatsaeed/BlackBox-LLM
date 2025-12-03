@@ -119,10 +119,27 @@ class HRProcessor:
             # Skip header-like rows
             if 'RT2' in str(date_val) or 'Daily Sales' in str(date_val):
                 continue
+            
+            # Normalize date to include both formats for better BM25 matching
+            date_str = str(date_val)
+            alt_date = date_str
+            try:
+                from datetime import datetime
+                for fmt in ['%m/%d/%Y', '%Y-%m-%d']:
+                    try:
+                        dt = datetime.strptime(date_str, fmt)
+                        alt_date = f"{dt.month}/{dt.day}/{dt.year}"
+                        break
+                    except ValueError:
+                        continue
+            except:
+                alt_date = date_str
                 
             # Create structured content for sales data
             content_parts = []
             content_parts.append(f"Date: {date_val}")
+            if alt_date != date_str:
+                content_parts.append(f"Date (alt): {alt_date}")
             
             # Add all non-null columns to content
             for col, val in row.items():
@@ -132,7 +149,8 @@ class HRProcessor:
                     content_parts.append(f"{clean_col}: {val}")
             
             if len(content_parts) > 1:  # Must have more than just date
-                content = "\n".join(content_parts)
+                # Add "Sales Data" prefix for better keyword matching
+                content = "Sales Data for RT2 - South Austin\n" + "\n".join(content_parts)
                 
                 doc = Document(
                     content=content,
